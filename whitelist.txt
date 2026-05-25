@@ -1,0 +1,179 @@
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local LocalPlayer = Players.LocalPlayer
+
+-- === 🔗 رابط لوحة تحكم GITHUB الخاص بك ===
+local WHITELIST_URL = "https://githubusercontent.com"
+
+-- === 🔍 جلب قائمة المصرح لهم تلقائياً ===
+local AllowedIDs = {}
+local success, response = pcall(function()
+    return game:HttpGet(WHITELIST_URL)
+end)
+
+if success and response then
+    for id in string.gmatch(response, "[^\r\n]+") do
+        local numId = tonumber(id)
+        if numId then
+            AllowedIDs[numId] = true
+        end
+    end
+else
+    -- حماية احتياطية في حال لم ترفع الملف بعد على جيتهاب
+    AllowedIDs[2908899698] = true
+end
+
+-- === 🛡️ التحقق من المشتركين ===
+if not AllowedIDs[LocalPlayer.UserId] then
+    LocalPlayer:Kick("❌ لست مسجلاً في قائمة المشتركين لهذه النسخة.")
+    return
+end
+
+-- ==========================================
+-- === 🌟 سكربت كاشف اللوت (ESP) ===
+-- ==========================================
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPack = game:GetService("StarterPack")
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+
+local ESP_ENABLED = true          
+local MAX_DISTANCE = 2000         
+local UPDATE_INTERVAL = 0.5       
+
+local RARITY_COLORS = {
+    ["Common"] = Color3.fromRGB(255, 255, 255),    
+    ["Uncommon"] = Color3.fromRGB(99, 255, 52),   
+    ["Rare"] = Color3.fromRGB(51, 170, 255),       
+    ["Epic"] = Color3.fromRGB(237, 44, 255),       
+    ["Legendary"] = Color3.fromRGB(255, 150, 0),   
+    ["Omega"] = Color3.fromRGB(255, 20, 51),       
+}
+
+local BillboardCache = {}
+
+local function getCleanName(tool)
+    if not tool or not tool.Name then return nil end
+    local originalName = tool.Name
+    local cleaned = originalName:lower()
+        :gsub("%d+$", "") 
+        :gsub("_%d+$", "")
+        :gsub("[%s_]+", " ")
+        :match("^%s*(.-)%s*$")
+
+    if cleaned:find("fishing") or cleaned:find("rod") or cleaned:find("canne") then
+        if cleaned:find("ultimate") or cleaned:find("ult") then return "Ultimate Fishing Rod"
+        elseif cleaned:find("advanced") then return "Advanced Fishing Rod"
+        elseif cleaned:find("pro") then return "Pro Fishing Rod"
+        else return "Regular Fishing Rod" end
+    end
+    return originalName
+end
+
+local function updateESP(player)
+    local bb = BillboardCache[player]
+    if not bb then return end
+
+    local char = player.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Head") then
+        bb.Enabled = false
+        return
+    end
+
+    local lChar = LocalPlayer.Character
+    if lChar and lChar:FindFirstChild("HumanoidRootPart") then
+        local dist = (lChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+        if dist > MAX_DISTANCE then
+            bb.Enabled = false
+            return
+        end
+    end
+
+    local container = bb:FindFirstChild("EspContainer")
+    if not container then return end
+    container:ClearAllChildren()
+
+    local layout = Instance.new("UIListLayout", container)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
+    layout.Padding = UDim.new(0, 2)
+
+    local tools = {}
+    if player:FindFirstChild("Backpack") then
+        for _, t in ipairs(player.Backpack:GetChildren()) do
+            if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
+        end
+    end
+    for _, t in ipairs(char:GetChildren()) do
+        if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
+    end
+
+    bb.Enabled = ESP_ENABLED and (#tools > 0)
+    bb.Adornee = char:FindFirstChild("Head")
+
+    for _, tool in ipairs(tools) do
+        local name = getCleanName(tool)
+        if name then
+            local lbl = Instance.new("TextLabel", container)
+            lbl.Size = UDim2.new(0, 200, 0, 16)
+            lbl.BackgroundTransparency = 1
+            lbl.Text = "[ " .. name .. " ]"
+            lbl.Font = Enum.Font.SourceSansBold
+            lbl.TextSize = 13
+            lbl.TextStrokeTransparency = 0.2
+            lbl.TextStrokeColor3 = Color3.new(0,0,0)
+
+            local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
+            lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(0, 255, 255)
+        end
+    end
+end
+
+local function createESP(player)
+    if player == LocalPlayer then return end
+
+    local function setup(char)
+        if BillboardCache[player] then BillboardCache[player]:Destroy() end
+
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "LootESP"
+        bb.Size = UDim2.new(0, 200, 0, 100)
+        bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 3, 0)
+        bb.Enabled = false
+        bb.Parent = game.CoreGui
+
+        local container = Instance.new("Frame", bb)
+        container.Name = "EspContainer"
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+
+        BillboardCache[player] = bb
+    end
+
+    if player.Character then setup(player.Character) end
+    player.CharacterAdded:Connect(setup)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+Players.PlayerAdded:Connect(createESP)
+
+Players.PlayerRemoving:Connect(function(p)
+    if BillboardCache[p] then
+        BillboardCache[p]:Destroy()
+        BillboardCache[p] = nil
+    end
+end)
+
+task.spawn(function()
+    while true do
+        for p, _ in pairs(BillboardCache) do
+            pcall(function()
+                updateESP(p)
+            end)
+        end
+        task.wait(UPDATE_INTERVAL)
+    end
+end)
+
+print("Rayiz Loot ESP Loaded Successfully! ✅")
