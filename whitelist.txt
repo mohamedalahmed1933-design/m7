@@ -3,94 +3,95 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterPack = game:GetService("StarterPack")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local CoreGui = game:GetService("CoreGui")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- === 🛡️ نظام المفاتيح وقائمة المشتركين المحمية (ADVANCED KEY SYSTEM) ===
+-- === ADVANCED KEY SYSTEM ===
 
 local AllowedIDs = {
-    [2908899698] = true, -- 🔒 حسابك الشخصي (Rayiz_1)
-    [2345512278] = true, -- 👥 حساب صديقك (xcyfo)
+    [2908899698] = true, -- حسابك الشخصي (Rayiz_1)
+    [2345512278] = true, -- حساب صديقك (xcyfo)
 }
 
+-- الكي يتغير يوميًا (مثال)
 local function GenerateKey()
-    return "MMM" -- ✨ المفتاح السري المعتمد
+    return "MMM"
 end
 
 local CorrectKey = GenerateKey()
-local KeyEntered = false
-local KeyExpireTime = 300 
 
--- إنشاء واجهة التحقق (GUI)
-local KeyGui = Instance.new("ScreenGui", CoreGui)
+local KeyEntered = false
+local KeyExpireTime = 300 -- 5 دقائق
+
+-- GUI
+local KeyGui = Instance.new("ScreenGui", game.CoreGui)
 KeyGui.Name = "SecureKeySystem"
 
 local Frame = Instance.new("Frame", KeyGui)
 Frame.Size = UDim2.new(0, 320, 0, 200)
 Frame.Position = UDim2.new(0.5, -160, 0.5, -100)
-Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ خلفية القائمة باللون الأبيض النقي
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- تعديل: خلفية بيضاء
 Frame.BorderSizePixel = 0
 Instance.new("UICorner", Frame)
 
 local Title = Instance.new("TextLabel", Frame)
-Title.Size = UDim2.new(1, 0, 0.25, 0)
-Title.Text = "Welcome Script Rayiz"
+Title.Size = UDim2.new(1,0,0.25,0)
+Title.Text = "Welcome script Rayiz"
 Title.TextScaled = true
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0, 0, 0) -- 🖤 النص باللون الأسود ليظهر بوضوح على الخلفية البيضاء
+Title.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود ليظهر على الأبيض
 Title.Font = Enum.Font.SourceSansBold
 
 local TextBox = Instance.new("TextBox", Frame)
-TextBox.Size = UDim2.new(0.8, 0, 0.25, 0)
-TextBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+TextBox.Size = UDim2.new(0.8,0,0.25,0)
+TextBox.Position = UDim2.new(0.1,0,0.3,0)
 TextBox.PlaceholderText = "Enter Key..."
 TextBox.Text = ""
 TextBox.TextScaled = true
-TextBox.BackgroundColor3 = Color3.fromRGB(235, 235, 235) -- صندوق كتابة رمادي فاتح مريح للعين
-TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+TextBox.BackgroundColor3 = Color3.fromRGB(235,235,235) -- تعديل: رمادي فاتح مناسب للأبيض
+TextBox.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود للكتابة
 Instance.new("UICorner", TextBox)
 
 local Status = Instance.new("TextLabel", Frame)
-Status.Size = UDim2.new(1, 0, 0.15, 0)
-Status.Position = UDim2.new(0, 0, 0.55, 0)
+Status.Size = UDim2.new(1,0,0.15,0)
+Status.Position = UDim2.new(0,0,0.55,0)
 Status.BackgroundTransparency = 1
 Status.Text = ""
 Status.TextScaled = true
-Status.TextColor3 = Color3.fromRGB(0, 0, 0)
+Status.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود للحالة
 
 local Button = Instance.new("TextButton", Frame)
-Button.Size = UDim2.new(0.8, 0, 0.2, 0)
-Button.Position = UDim2.new(0.1, 0, 0.75, 0)
+Button.Size = UDim2.new(0.8,0,0.2,0)
+Button.Position = UDim2.new(0.1,0,0.75,0)
 Button.Text = "Submit"
 Button.TextScaled = true
-Button.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- 🖤 زر الإرسال باللون الأسود
-Button.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ نص الزر باللون الأبيض لتباين ممتاز
+Button.BackgroundColor3 = Color3.fromRGB(0,0,0) -- تعديل: زر أسود متناسق
+Button.TextColor3 = Color3.fromRGB(255,255,255) -- تعديل: نص زر أبيض
 Instance.new("UICorner", Button)
 
--- تفعيل التحقق عند الضغط
+-- تحقق
 Button.MouseButton1Click:Connect(function()
     if not AllowedIDs[LocalPlayer.UserId] then
-        Status.Text = "❌ لست في قائمة المشتركين"
-        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+        Status.Text = "❌ لست في قائيمة المشتركين"
+        Status.TextColor3 = Color3.fromRGB(255,0,0)
         return
     end
 
     if TextBox.Text ~= CorrectKey then
         Status.Text = "❌ الرمز ليس صحيح"
-        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+        Status.TextColor3 = Color3.fromRGB(255,0,0)
         return
     end
 
     KeyEntered = true
     Status.Text = "✅ ناجح"
-    Status.TextColor3 = Color3.fromRGB(0, 180, 0)
+    Status.TextColor3 = Color3.fromRGB(0,180,0)
     
     task.wait(1)
     KeyGui:Destroy()
 end)
 
--- حماية الـ Timeout للوقت
+-- Timeout (حماية)
 task.spawn(function()
     local start = tick()
     while not KeyEntered do
@@ -102,15 +103,15 @@ task.spawn(function()
     end
 end)
 
--- إيقاف الكاشف حتى يتم إدخال الكود بنجاح
+-- وقف السكربت لين يتحقق
 repeat task.wait() until KeyEntered
 
--- ==========================================
--- === 🌟 إعدادات كاشف BLOXSPIN المتطور ===
--- ==========================================
-local ESP_ENABLED = true          
-local MAX_DISTANCE = 3000         
-local UPDATE_INTERVAL = 0.02 
+-- === CONFIGURATION ===
+local espInventoryEnabled = true 
+local MAX_DISTANCE = 2000 
+local UPDATE_INTERVAL = 1 
+local BillboardCache = {}
+local nameCache = {} 
 
 local RARITY_COLORS = {
     ["Common"] = Color3.fromRGB(255, 255, 255),
@@ -121,146 +122,178 @@ local RARITY_COLORS = {
     ["Omega"] = Color3.fromRGB(255, 20, 51),
 }
 
-local ESP_Cache = {}
-local Loot_Cache = {}
-
--- دالة فك شفرة أسلحة ولوت Bloxspin الأرضي واليدوي وإخفاء الأرقام
-local function getCleanName(tool)
-    if not tool then return nil end
+local function getRealName(t)
+    if not t or not t.Name then return nil end
     
-    local attrName = tool:GetAttribute("DisplayName") or tool:GetAttribute("WeaponName") or tool:GetAttribute("ItemName") or tool:GetAttribute("Name")
-    if attrName and tostring(attrName) ~= "" and not tonumber(attrName) then
-        return tostring(attrName)
-    end
+    local originalName = t.Name
+    local lowerName = originalName:lower()
 
-    for _, child in ipairs(tool:GetChildren()) do
-        if child:IsA("StringValue") and child.Value ~= "" and not tonumber(child.Value) then
-            local cName = child.Name:lower()
-            if cName:find("name") or cName:find("weapon") or cName:find("display") or cName:find("item") then
-                return child.Value
-            end
+    -- Nettoyage agressif des suffixes que Roblox ajoute quand l'outil est équipé
+    local cleaned = lowerName
+        :gsub("%d+$", "")               -- chiffres à la fin
+        :gsub("_%d+$", "")              -- _12345 à la fin
+        :gsub("%s*%d+%s*$", "")         -- espaces + chiffres à la fin
+        :gsub("[%s_]+", " ")            -- multiples espaces/underscores → un seul espace
+        :gsub("([^%w%s])", "")          -- enlève caractères spéciaux non désirés
+        :match("^%s*(.-)%s*$")          -- trim
+
+    -- Priorité maximale : détection fishing rods SANS passer par le cache
+    if cleaned:find("fishing") or cleaned:find("rod") or cleaned:find("canne") or cleaned:find("pêche") then
+        if cleaned:find("ultimate") or cleaned:find("ult") then
+            return "Ultimate Fishing Rod"
+        elseif cleaned:find("advanced") then
+            return "Advanced Fishing Rod"
+        elseif cleaned:find("pro") then
+            return "Pro Fishing Rod"
+        else
+            return "Regular Fishing Rod"
         end
     end
 
-    local originalName = tool.Name
-    local cleaned = originalName:gsub("%d+", ""):gsub("_", " "):gsub("-", " "):gsub("[%s]+", " "):match("^%s*(.-)%s*\$")
-    
-    if tonumber(originalName) and (not cleaned or cleaned == "") then
-        return "Weapon [" .. originalName .. "]"
+    -- Pour les autres outils → cache + détection originale
+    if nameCache[originalName] then 
+        return nameCache[originalName] 
     end
-
-    if not cleaned or cleaned == "" then cleaned = originalName end
-    return (cleaned:gsub("(%a)([%w]*)", function(first, rest) return first:upper()..rest:lower() end))
+    
+    local h = t:FindFirstChild("Handle")
+    local fallbackName = cleaned
+    
+    for _, folder in ipairs({ReplicatedStorage:FindFirstChild("Items"), StarterPack}) do
+        if folder then
+            for _, item in ipairs(folder:GetDescendants()) do
+                if item:IsA("Tool") and item:FindFirstChild("Handle") then
+                    local match = true
+                    if h then
+                        for _, c in ipairs(h:GetChildren()) do
+                            if not item.Handle:FindFirstChild(c.Name) then 
+                                match = false 
+                                break 
+                            end
+                        end
+                    else
+                        match = false
+                    end
+                    if match then 
+                        nameCache[originalName] = item.Name 
+                        return item.Name 
+                    end
+                end
+            end
+        end
+    end
+    
+    nameCache[originalName] = fallbackName
+    return fallbackName
 end
 
--- === 👤 1️⃣ دالة تحديث كاشف اللاعبين والأسلحة ===
-local function updateESP(player)
-    local data = ESP_Cache[player]
-    if not data then return end
-
-    local char = player.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    local head = char and char:FindFirstChild("Head")
-    local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-
-    if not char or not root or not head or not humanoid or humanoid.Health <= 0 then
-        if data.Billboard then data.Billboard.Enabled = false end
-        if data.Box then data.Box.Adornee = nil end
-        return
-    end
-
-    local lChar = LocalPlayer.Character
-    local lRoot = lChar and lChar:FindFirstChild("HumanoidRootPart")
-    if not lRoot then 
-        if data.Billboard then data.Billboard.Enabled = false end
-        if data.Box then data.Box.Adornee = nil end
+local function updateESP(p)
+    local bb = BillboardCache[p]
+    if not bb then return end
+    
+    local char = p.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then 
+        bb.Enabled = false
         return 
     end
-
-    local dist = math.floor((lRoot.Position - root.Position).Magnitude)
-    if dist > MAX_DISTANCE then
-        if data.Billboard then data.Billboard.Enabled = false end
-        if data.Box then data.Box.Adornee = nil end
-        return
+    
+    local lChar = LocalPlayer.Character
+    if lChar and lChar:FindFirstChild("HumanoidRootPart") then
+        local dist = (lChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
+        if dist > MAX_DISTANCE then
+            bb.Enabled = false
+            return
+        end
     end
 
-    if data.Box then data.Box.Adornee = char end
+    local container = bb:FindFirstChild("EspContainer")
+    if not container then return end
+    container:ClearAllChildren()
 
-    local container = data.Billboard and data.Billboard:FindFirstChild("EspContainer")
-    if container then
-        container:ClearAllChildren()
+    local layout = Instance.new("UIListLayout", container)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
+    layout.Padding = UDim.new(0, 2)
 
-        local layout = Instance.new("UIListLayout", container)
-        layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-        layout.VerticalAlignment = Enum.VerticalAlignment.Bottom
-        layout.Padding = UDim.new(0, 2)
-
-        local infoLbl = Instance.new("TextLabel", container)
-        infoLbl.Size = UDim2.new(0, 200, 0, 24)
-        infoLbl.BackgroundTransparency = 1
-        infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
-        infoLbl.Font = Enum.Font.SourceSansBold
-        infoLbl.TextSize = 14
-        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) 
-        infoLbl.TextStrokeTransparency = 0.1
-        infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-
-        if humanoid.Health < (humanoid.MaxHealth * 0.25) then
-            infoLbl.TextColor3 = Color3.fromRGB(255, 50, 50) 
+    local tools = {}
+    if p:FindFirstChild("Backpack") then
+        for _, t in ipairs(p.Backpack:GetChildren()) do
+            if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
         end
-
-        local tools = {}
-        if player:FindFirstChild("Backpack") then
-            for _, t in ipairs(player.Backpack:GetChildren()) do
-                if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
-            end
-        end
+    end
+    if char then
         for _, t in ipairs(char:GetChildren()) do
             if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
         end
-
-        for _, tool in ipairs(tools) do
-            local name = getCleanName(tool)
-            if name then
-                local lbl = Instance.new("TextLabel", container)
-                lbl.Size = UDim2.new(0, 200, 0, 14)
-                lbl.BackgroundTransparency = 1
-                lbl.Text = "[ " .. name .. " ]"
-                lbl.Font = Enum.Font.SourceSansBold
-                lbl.TextSize = 12
-                lbl.TextStrokeTransparency = 0.2
-                lbl.TextStrokeColor3 = Color3.new(0,0,0)
-
-                local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
-                lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(0, 255, 255)
-            end
-        end
     end
 
-    if data.Billboard then
-        data.Billboard.Enabled = ESP_ENABLED
-        data.Billboard.Adornee = head
+    bb.Enabled = espInventoryEnabled and (#tools > 0)
+    
+    for _, tool in ipairs(tools) do
+        local name = getRealName(tool)
+        if name then
+            local lbl = Instance.new("TextLabel", container)
+            lbl.Size = UDim2.new(0, 180, 0, 14)
+            lbl.BackgroundTransparency = 1
+            lbl.Text = name
+            lbl.Font = Enum.Font.SourceSansBold
+            lbl.TextSize = 11
+            lbl.TextStrokeTransparency = 0.4
+            
+            local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
+            lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.new(1, 1, 1)
+        end
     end
 end
 
--- === 📦 2️⃣ كاشف اللوت الأرضي والصناديق تلقائياً ===
-local function checkAndTrackLoot(object)
-    if not object:IsA("Model") and not object:IsA("Part") and not object:IsA("MeshPart") and not object:IsA("Tool") then return end
+local function createESP(p)
+    if p == LocalPlayer then return end
     
-    local nameLower = object.Name:lower()
-    local isChest = nameLower:find("chest") or nameLower:find("treasure") or nameLower:find("box") or nameLower:find("safe")
-    local isDroppedItem = object:IsA("Tool") or object:FindFirstChildOfClass("TouchTransmitter") or nameLower:find("item") or nameLower:find("loot") or object:FindFirstChild("Handle")
-
-    if (isChest or isDroppedItem) and not Loot_Cache[object] then
-        local primaryPart = object:IsA("Model") and (object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart")) or object
-        if not primaryPart then return end
-
-        local cleanName = isChest and "Treasure Chest 🎁" or getCleanName(object)
-        local displayColor = isChest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 100) 
-
-        local bb = Instance.new("BillboardGui")
-        bb.Name = "LootESP_" .. object.Name
-        bb.Size = UDim2.new(0, 150, 0, 40)
-        bb.AlwaysOnTop = true
-        bb.ExtentsOffset = Vector3.new(0, 2, 0)
+    local function setup(char)
+        local root = char:WaitForChild("HumanoidRootPart", 15)
+        if not root then return end
         
+        if BillboardCache[p] then BillboardCache[p]:Destroy() end
+        
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "LootESP"
+        bb.Size = UDim2.new(0, 200, 0, 100)
+        bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 3, 0)
+        bb.Enabled = false
+        bb.Parent = game.CoreGui
+
+        local container = Instance.new("Frame", bb)
+        container.Name = "EspContainer"
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+
+        BillboardCache[p] = bb
+        bb.Adornee = char:WaitForChild("Head", 15)
+    end
+
+    if p.Character then setup(p.Character) end
+    p.CharacterAdded:Connect(setup)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
+Players.PlayerAdded:Connect(createESP)
+
+Players.PlayerRemoving:Connect(function(p)
+    if BillboardCache[p] then
+        BillboardCache[p]:Destroy()
+        BillboardCache[p] = nil
+    end
+end)
+
+task.spawn(function()
+    while true do
+        for p, _ in pairs(BillboardCache) do
+            pcall(function()
+                updateESP(p)
+            end)
+        end
+        task.wait(UPDATE_INTERVAL)
+    end
+end)
+
+print("Rayiz Loot ESP Loaded Successfully! ✅")
