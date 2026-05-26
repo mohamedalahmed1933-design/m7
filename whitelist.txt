@@ -9,8 +9,8 @@ local LocalPlayer = Players.LocalPlayer
 -- === ADVANCED KEY SYSTEM ===
 
 local AllowedIDs = {
-    [2908899698] = true, -- حسابك الشخصي (Rayiz_1)
-    [2345512278] = true, -- حساب صديقك (xcyfo)
+    [2908899698] = true, -- حسابك الشخصي (Rayiz_1) 🔒
+    [2345512278] = true, -- حساب صديقك (xcyfo) 👥
 }
 
 -- الكي يتغير يوميًا (مثال)
@@ -19,18 +19,17 @@ local function GenerateKey()
 end
 
 local CorrectKey = GenerateKey()
-
 local KeyEntered = false
 local KeyExpireTime = 300 -- 5 دقائق
 
--- GUI
+-- GUI الواجهة البيضاء للمفتاح
 local KeyGui = Instance.new("ScreenGui", game.CoreGui)
 KeyGui.Name = "SecureKeySystem"
 
 local Frame = Instance.new("Frame", KeyGui)
 Frame.Size = UDim2.new(0, 320, 0, 200)
 Frame.Position = UDim2.new(0.5, -160, 0.5, -100)
-Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- تعديل: خلفية بيضاء
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
 Frame.BorderSizePixel = 0
 Instance.new("UICorner", Frame)
 
@@ -39,7 +38,7 @@ Title.Size = UDim2.new(1,0,0.25,0)
 Title.Text = "Welcome script Rayiz"
 Title.TextScaled = true
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود ليظهر على الأبيض
+Title.TextColor3 = Color3.fromRGB(0,0,0) 
 Title.Font = Enum.Font.SourceSansBold
 
 local TextBox = Instance.new("TextBox", Frame)
@@ -48,8 +47,8 @@ TextBox.Position = UDim2.new(0.1,0,0.3,0)
 TextBox.PlaceholderText = "Enter Key..."
 TextBox.Text = ""
 TextBox.TextScaled = true
-TextBox.BackgroundColor3 = Color3.fromRGB(235,235,235) -- تعديل: رمادي فاتح مناسب للأبيض
-TextBox.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود للكتابة
+TextBox.BackgroundColor3 = Color3.fromRGB(235,235,235)
+TextBox.TextColor3 = Color3.fromRGB(0,0,0)
 Instance.new("UICorner", TextBox)
 
 local Status = Instance.new("TextLabel", Frame)
@@ -58,15 +57,15 @@ Status.Position = UDim2.new(0,0,0.55,0)
 Status.BackgroundTransparency = 1
 Status.Text = ""
 Status.TextScaled = true
-Status.TextColor3 = Color3.fromRGB(0,0,0) -- تعديل: نص أسود للحالة
+Status.TextColor3 = Color3.fromRGB(0,0,0)
 
 local Button = Instance.new("TextButton", Frame)
 Button.Size = UDim2.new(0.8,0,0.2,0)
 Button.Position = UDim2.new(0.1,0,0.75,0)
 Button.Text = "Submit"
 Button.TextScaled = true
-Button.BackgroundColor3 = Color3.fromRGB(0,0,0) -- تعديل: زر أسود متناسق
-Button.TextColor3 = Color3.fromRGB(255,255,255) -- تعديل: نص زر أبيض
+Button.BackgroundColor3 = Color3.fromRGB(0,0,0) 
+Button.TextColor3 = Color3.fromRGB(255,255,255) 
 Instance.new("UICorner", Button)
 
 -- تحقق
@@ -108,10 +107,16 @@ repeat task.wait() until KeyEntered
 
 -- === CONFIGURATION ===
 local espInventoryEnabled = true 
+local AIMBOT_ENABLED = true
 local MAX_DISTANCE = 2000 
-local UPDATE_INTERVAL = 1 
+local UPDATE_INTERVAL = 0.02 
 local BillboardCache = {}
 local nameCache = {} 
+
+local AIM_KEY = Enum.UserInputType.MouseButton2 
+local AIM_TARGET_PART = "HumanoidRootPart" -- قفل الأيم على الجسد وآمن
+local AIM_SMOOTHNESS = 0.15 
+local Aiming = false
 
 local RARITY_COLORS = {
     ["Common"] = Color3.fromRGB(255, 255, 255),
@@ -122,22 +127,94 @@ local RARITY_COLORS = {
     ["Omega"] = Color3.fromRGB(255, 20, 51),
 }
 
+-- === 🖤 قائمة التحكم السوداء (OPEN MENU) ===
+local MenuGui = Instance.new("ScreenGui", game.CoreGui)
+MenuGui.Name = "RayizMenu"
+
+local MenuFrame = Instance.new("Frame", MenuGui)
+MenuFrame.Size = UDim2.new(0, 240, 0, 180)
+MenuFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+MenuFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) 
+MenuFrame.BorderSizePixel = 0
+Instance.new("UICorner", MenuFrame)
+
+local MenuTitle = Instance.new("TextLabel", MenuFrame)
+MenuTitle.Size = UDim2.new(1, 0, 0.25, 0)
+MenuTitle.Text = "Rayiz Panel [K]"
+MenuTitle.TextScaled = true
+MenuTitle.BackgroundTransparency = 1
+MenuTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+MenuTitle.Font = Enum.Font.SourceSansBold
+
+local EspBtn = Instance.new("TextButton", MenuFrame)
+EspBtn.Size = UDim2.new(0.9, 0, 0.25, 0)
+EspBtn.Position = UDim2.new(0.05, 0, 0.35, 0)
+EspBtn.Text = "ESP: ON"
+EspBtn.TextScaled = true
+EspBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+EspBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", EspBtn)
+
+EspBtn.MouseButton1Click:Connect(function()
+    espInventoryEnabled = not espInventoryEnabled
+    if espInventoryEnabled then
+        EspBtn.Text = "ESP: ON"
+        EspBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        EspBtn.Text = "ESP: OFF"
+        EspBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        for _, bb in pairs(BillboardCache) do bb.Enabled = false end
+    end
+end)
+
+local AimBtn = Instance.new("TextButton", MenuFrame)
+AimBtn.Size = UDim2.new(0.9, 0, 0.25, 0)
+AimBtn.Position = UDim2.new(0.05, 0, 0.68, 0)
+AimBtn.Text = "Aimbot: ON"
+AimBtn.TextScaled = true
+AimBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+AimBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", AimBtn)
+
+AimBtn.MouseButton1Click:Connect(function()
+    AIMBOT_ENABLED = not AIMBOT_ENABLED
+    if AIMBOT_ENABLED then
+        AimBtn.Text = "Aimbot: ON"
+        AimBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        AimBtn.Text = "Aimbot: OFF"
+        AimBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        Aiming = false
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.K then
+        MenuFrame.Visible = not MenuFrame.Visible
+    end
+end)
+
+-- === FUNCTIONS ===
+
 local function getRealName(t)
     if not t or not t.Name then return nil end
+    
+    local attrName = t:GetAttribute("DisplayName") or t:GetAttribute("WeaponName") or t:GetAttribute("ItemName")
+    if attrName and tostring(attrName) ~= "" and not tonumber(attrName) then
+        return tostring(attrName)
+    end
     
     local originalName = t.Name
     local lowerName = originalName:lower()
 
-    -- Nettoyage agressif des suffixes que Roblox ajoute quand l'outil est équipé
     local cleaned = lowerName
-        :gsub("%d+$", "")               -- chiffres à la fin
-        :gsub("_%d+$", "")              -- _12345 à la fin
-        :gsub("%s*%d+%s*$", "")         -- espaces + chiffres à la fin
-        :gsub("[%s_]+", " ")            -- multiples espaces/underscores → un seul espace
-        :gsub("([^%w%s])", "")          -- enlève caractères spéciaux non désirés
-        :match("^%s*(.-)%s*$")          -- trim
+        :gsub("%d+\$", "")               
+        :gsub("_%d+\$", "")              
+        :gsub("%s*%d+%s*\$", "")         
+        :gsub("[%s_]+", " ")            
+        :gsub("([^%w%s])", "")          
+        :match("^%s*(.-)%s*\$")          
 
-    -- Priorité maximale : détection fishing rods SANS passer par le cache
     if cleaned:find("fishing") or cleaned:find("rod") or cleaned:find("canne") or cleaned:find("pêche") then
         if cleaned:find("ultimate") or cleaned:find("ult") then
             return "Ultimate Fishing Rod"
@@ -150,7 +227,6 @@ local function getRealName(t)
         end
     end
 
-    -- Pour les autres outils → cache + détection originale
     if nameCache[originalName] then 
         return nameCache[originalName] 
     end
@@ -187,6 +263,8 @@ local function getRealName(t)
 end
 
 local function updateESP(p)
+    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وحسابك كلياً
+
     local bb = BillboardCache[p]
     if not bb then return end
     
@@ -214,86 +292,15 @@ local function updateESP(p)
     layout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
     layout.Padding = UDim.new(0, 2)
 
-    local tools = {}
-    if p:FindFirstChild("Backpack") then
-        for _, t in ipairs(p.Backpack:GetChildren()) do
-            if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
-        end
-    end
-    if char then
-        for _, t in ipairs(char:GetChildren()) do
-            if t:IsA("Tool") and t.Name:lower() ~= "fists" then table.insert(tools, t) end
-        end
-    end
-
-    bb.Enabled = espInventoryEnabled and (#tools > 0)
+    -- نصوص معلومات اللاعب باللون الأبيض
+    local infoLbl = Instance.new("TextLabel", container)
+    infoLbl.Size = UDim2.new(0, 180, 0, 22)
+    infoLbl.BackgroundTransparency = 1
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hp = hum and math.floor(hum.Health) or 100
+    local maxHp = hum and math.floor(hum.MaxHealth) or 100
+    local lChar2 = LocalPlayer.Character
+    local distText = (lChar2 and lChar2:FindFirstChild("HumanoidRootPart")) and math.floor((lChar2.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude) or 0
     
-    for _, tool in ipairs(tools) do
-        local name = getRealName(tool)
-        if name then
-            local lbl = Instance.new("TextLabel", container)
-            lbl.Size = UDim2.new(0, 180, 0, 14)
-            lbl.BackgroundTransparency = 1
-            lbl.Text = name
-            lbl.Font = Enum.Font.SourceSansBold
-            lbl.TextSize = 11
-            lbl.TextStrokeTransparency = 0.4
-            
-            local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
-            lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.new(1, 1, 1)
-        end
-    end
-end
-
-local function createESP(p)
-    if p == LocalPlayer then return end
-    
-    local function setup(char)
-        local root = char:WaitForChild("HumanoidRootPart", 15)
-        if not root then return end
-        
-        if BillboardCache[p] then BillboardCache[p]:Destroy() end
-        
-        local bb = Instance.new("BillboardGui")
-        bb.Name = "LootESP"
-        bb.Size = UDim2.new(0, 200, 0, 100)
-        bb.AlwaysOnTop = true
-        bb.ExtentsOffset = Vector3.new(0, 3, 0)
-        bb.Enabled = false
-        bb.Parent = game.CoreGui
-
-        local container = Instance.new("Frame", bb)
-        container.Name = "EspContainer"
-        container.Size = UDim2.new(1, 0, 1, 0)
-        container.BackgroundTransparency = 1
-
-        BillboardCache[p] = bb
-        bb.Adornee = char:WaitForChild("Head", 15)
-    end
-
-    if p.Character then setup(p.Character) end
-    p.CharacterAdded:Connect(setup)
-end
-
-for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
-Players.PlayerAdded:Connect(createESP)
-
-Players.PlayerRemoving:Connect(function(p)
-    if BillboardCache[p] then
-        BillboardCache[p]:Destroy()
-        BillboardCache[p] = nil
-    end
-end)
-
-task.spawn(function()
-    while true do
-        for p, _ in pairs(BillboardCache) do
-            pcall(function()
-                updateESP(p)
-            end)
-        end
-        task.wait(UPDATE_INTERVAL)
-    end
-end)
-
-print("Rayiz Loot ESP Loaded Successfully! ✅")
+    infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", p.Name, distText, hp, maxHp)
+    infoLbl.Font = Enum.Font.SourceSansBold
