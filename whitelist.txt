@@ -6,35 +6,20 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- === 🛡️ ONLINE GITHUB WHITELIST & KEY SYSTEM ===
+-- === 🛡️ نظام المفاتيح وقائمة المشتركين المحمية داخلياً ومباشرة ===
 
--- ⚠️ قم بتغيير هذه الروابط إلى روابط الـ RAW الخاصة بملفاتك على جيتهاب
-local WHITELIST_URL = "https://githubusercontent.com"
-local KEY_URL = "https://githubusercontent.com"
+local AllowedIDs = {
+    [2908899698] = true, -- 🔒 حسابك الشخصي (Rayiz_1) مضاف ومثبت جاهز
+    [2345512278] = true, -- 👥 حساب صديقك (xcyfo) مضاف ومثبت جاهز
+}
 
-local AllowedIDs = {}
-local CorrectKey = "MMM" -- المفتاح الاحتياطي في حال فشل الاتصال
+local function GenerateKey()
+    return "MMM" -- ✨ المفتاح السري المعتمد والمثبت جاهز
+end
+
+local CorrectKey = GenerateKey()
 local KeyEntered = false
 local KeyExpireTime = 300 -- 5 دقائق
-
--- جلب قائمة المصرح لهم من جيتهاب تلقائياً
-local successWL, resWL = pcall(function() return game:HttpGet(WHITELIST_URL) end)
-if successWL and resWL then
-    for id in string.gmatch(resWL, "[^\r\n]+") do
-        local numId = tonumber(id)
-        if numId then AllowedIDs[numId] = true end
-    end
-else
-    -- القائمة الاحتياطية في حال تعطل الاتصال بالإنترنت
-    AllowedIDs[2908899698] = true -- حسابك الشخصي (Rayiz_1)
-    AllowedIDs[2345512278] = true -- حساب صديقك (xcyfo)
-end
-
--- جلب المفتاح اليومي من جيتهاب تلقائياً
-local successKey, resKey = pcall(function() return game:HttpGet(KEY_URL) end)
-if successKey and resKey then
-    CorrectKey = resKey:match("^%s*(.-)%s*\$") -- تنظيف المسافات والأسطر الزائدة
-end
 
 -- GUI الواجهة البيضاء للمفتاح
 local KeyGui = Instance.new("ScreenGui", game.CoreGui)
@@ -85,7 +70,7 @@ Instance.new("UICorner", Button)
 -- تحقق من المفتاح والمشتركين
 Button.MouseButton1Click:Connect(function()
     if not AllowedIDs[LocalPlayer.UserId] then
-        Status.Text = "❌ لست في قائيمة المشتركين"
+        Status.Text = "❌ لست في قائمة المشتركين"
         Status.TextColor3 = Color3.fromRGB(255,0,0)
         return
     end
@@ -128,7 +113,7 @@ local BillboardCache = {}
 local nameCache = {} 
 
 local AIM_KEY = Enum.UserInputType.MouseButton2 
-local AIM_TARGET_PART = "HumanoidRootPart" -- قفل التثبيت على الجسد وآمن
+local AIM_TARGET_PART = "HumanoidRootPart" -- قفل التثبيت على الجسد وآمن جداً
 local AIM_SMOOTHNESS = 0.15 
 local Aiming = false
 
@@ -141,7 +126,7 @@ local RARITY_COLORS = {
     ["Omega"] = Color3.fromRGB(255, 20, 51),
 }
 
--- === 🖤 قائمة التحكم المفتوحة السوداء (OPEN MENU) ===
+-- === 🖤 قائمة التحكم السوداء (OPEN MENU) ===
 local MenuGui = Instance.new("ScreenGui", game.CoreGui)
 MenuGui.Name = "RayizMenu"
 
@@ -269,7 +254,7 @@ local function getRealName(t)
 end
 
 local function updateESP(p)
-    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وعلامات حسابك بالكامل لحمايتك أثناء اللعب
+    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وعلامات حسابك بالكامل لحمايتك أثناء اللعب والتصوير
 
     local bb = BillboardCache[p]
     if not bb then return end
@@ -294,3 +279,17 @@ local function updateESP(p)
     container:ClearAllChildren()
 
     local layout = Instance.new("UIListLayout", container)
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
+    layout.Padding = UDim.new(0, 2)
+
+    -- نصوص معلومات اللاعب باللون الأبيض
+    local infoLbl = Instance.new("TextLabel", container)
+    infoLbl.Size = UDim2.new(0, 180, 0, 22)
+    infoLbl.BackgroundTransparency = 1
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local hp = hum and math.floor(hum.Health) or 100
+    local maxHp = hum and math.floor(hum.MaxHealth) or 100
+    local lChar2 = LocalPlayer.Character
+    local distText = (lChar2 and lChar2:FindFirstChild("HumanoidRootPart")) and math.floor((lChar2.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude) or 0
+    
