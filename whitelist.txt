@@ -3,38 +3,13 @@ local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
-
--- === 🔗 ضع رابط الـ RAW الذي نسخته من جيتهاب هنا ===
-local WHITELIST_URL = "https://githubusercontent.com"
-
--- === 🔍 جلب قائمة المصرح لهم ===
-local AllowedIDs = {}
-local success, response = pcall(function()
-    return game:HttpGet(WHITELIST_URL)
-end)
-
-if success and response then
-    for id in string.gmatch(response, "[^\r\n]+") do
-        local numId = tonumber(id)
-        if numId then AllowedIDs[numId] = true end
-    end
-else
-    AllowedIDs = true 
-end
-
--- === 🛡️ التحقق من المشتركين ===
-if not AllowedIDs[LocalPlayer.UserId] and AllowedIDs ~= true then
-    LocalPlayer:Kick("❌ لست مسجلاً في قائمة المشتركين لهذه النسخة.")
-    return
-end
 
 -- ==========================================
 -- === 🌟 إعدادات الكاشف المتطور (ESP) ===
 -- ==========================================
 local ESP_ENABLED = true          
-local MAX_DISTANCE = 2000         
-local UPDATE_INTERVAL = 0.01 
+local MAX_DISTANCE = 3000         
+local UPDATE_INTERVAL = 0.02 
 
 local RARITY_COLORS = {
     ["Common"] = Color3.fromRGB(255, 255, 255),    
@@ -69,32 +44,33 @@ local function updateESP(player)
     local humanoid = char and char:FindFirstChildOfClass("Humanoid")
 
     if not char or not root or not head or not humanoid or humanoid.Health <= 0 then
-        data.Billboard.Enabled = false
-        data.Box.Visible = false
+        if data.Billboard then data.Billboard.Enabled = false end
+        if data.Box then data.Box.Adornee = nil end
         return
     end
 
     local lChar = LocalPlayer.Character
     local lRoot = lChar and lChar:FindFirstChild("HumanoidRootPart")
     if not lRoot then 
-        data.Billboard.Enabled = false
-        data.Box.Visible = false
+        if data.Billboard then data.Billboard.Enabled = false end
+        if data.Box then data.Box.Adornee = nil end
         return 
     end
 
     local dist = math.floor((lRoot.Position - root.Position).Magnitude)
     if dist > MAX_DISTANCE then
-        data.Billboard.Enabled = false
-        data.Box.Visible = false
+        if data.Billboard then data.Billboard.Enabled = false end
+        if data.Box then data.Box.Adornee = nil end
         return
     end
 
-    -- === 1️⃣ تحديث المربع ثلاثي الأبعاد ===
-    data.Box.Adornee = char
-    data.Box.Visible = ESP_ENABLED
+    -- === 1️⃣ تحديث المربع المحيط باللاعب ===
+    if data.Box then
+        data.Box.Adornee = char
+    end
 
     -- === 2️⃣ تحديث النصوص (الاسم، المسافة، الدم) ===
-    local container = data.Billboard:FindFirstChild("EspContainer")
+    local container = data.Billboard and data.Billboard:FindFirstChild("EspContainer")
     if container then
         container:ClearAllChildren()
 
@@ -104,13 +80,13 @@ local function updateESP(player)
         layout.Padding = UDim.new(0, 2)
 
         local infoLbl = Instance.new("TextLabel", container)
-        infoLbl.Size = UDim2.new(0, 200, 0, 18)
+        infoLbl.Size = UDim2.new(0, 200, 0, 24)
         infoLbl.BackgroundTransparency = 1
-        infoLbl.Text = string.format("%s [%d m] \nHP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
+        infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
         infoLbl.Font = Enum.Font.SourceSansBold
         infoLbl.TextSize = 14
-        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-        infoLbl.TextStrokeTransparency = 0.2
+        infoLbl.TextColor3 = Color3.fromRGB(0, 255, 255)
+        infoLbl.TextStrokeTransparency = 0.1
         infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
 
         if humanoid.Health < (humanoid.MaxHealth * 0.3) then
@@ -143,24 +119,30 @@ local function updateESP(player)
                 lbl.TextStrokeColor3 = Color3.new(0,0,0)
 
                 local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
-                lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(0, 255, 255)
+                lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(255, 255, 255)
             end
         end
     end
 
-    data.Billboard.Enabled = ESP_ENABLED
-    data.Billboard.Adornee = head
+    if data.Billboard then
+        data.Billboard.Enabled = ESP_ENABLED
+        data.Billboard.Adornee = head
+    end
 end
 
 local function createESP(player)
     if player == LocalPlayer then return end
 
     local function setup(char)
+        char:WaitForChild("HumanoidRootPart", 5)
+        char:WaitForChild("Head", 5)
+
         if ESP_Cache[player] then 
             if ESP_Cache[player].Billboard then ESP_Cache[player].Billboard:Destroy() end
             if ESP_Cache[player].Box then ESP_Cache[player].Box:Destroy() end
         end
 
+        -- إنشاء اللوحة فوق الرأس
         local bb = Instance.new("BillboardGui")
         bb.Name = "PlayerESP_" .. player.Name
         bb.Size = UDim2.new(0, 200, 0, 150)
@@ -176,18 +158,17 @@ local function createESP(player)
         container.Size = UDim2.new(1, 0, 1, 0)
         container.BackgroundTransparency = 1
 
+        -- المربع المحيط ثلاثي الأبعاد
         local box = Instance.new("SelectionBox")
         box.Name = "BoxESP_" .. player.Name
         box.Color3 = Color3.fromRGB(255, 0, 0) 
         box.LineThickness = 0.05
-        box.Adornee = char
-        box.Visible = false
         box.Parent = workspace
 
         ESP_Cache[player] = { Billboard = bb, Box = box }
     end
 
-    if player.Character then setup(player.Character) end
+    if player.Character then task.spawn(setup, player.Character) end
     player.CharacterAdded:Connect(setup)
 end
 
@@ -211,4 +192,4 @@ task.spawn(function()
     end
 end)
 
-print("Rayiz Ultimate Player & Loot ESP Fixed & Loaded! 🚀✅")
+print("Rayiz Ultra ESP System Fully Activated! 🚀")
