@@ -292,4 +292,156 @@ local function updateESP(p)
     local maxHp = hum and math.floor(hum.MaxHealth) or 100
     local lChar2 = LocalPlayer.Character
     local distText = (lChar2 and lChar2:FindFirstChild("HumanoidRootPart")) and math.floor((lChar2.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude) or 0
+  infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", p.Name, distText, hp, maxHp)
+infoLbl.Font = Enum.Font.SourceSansBold
+infoLbl.TextSize = 13
+infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ أبيض ناصع لأسمائهم
+infoLbl.TextStrokeTransparency = 0.2
+infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+local tools = {}
+
+if p:FindFirstChild("Backpack") then
+    for _, t in ipairs(p.Backpack:GetChildren()) do
+        if t:IsA("Tool") and t.Name:lower() ~= "fists" then 
+            table.insert(tools, t) 
+        end
+    end
+end
+
+if char then
+    for _, t in ipairs(char:GetChildren()) do
+        if t:IsA("Tool") and t.Name:lower() ~= "fists" then 
+            table.insert(tools, t) 
+        end
+    end
+end
+
+bb.Enabled = espInventoryEnabled
+
+for _, tool in ipairs(tools) do
+    local name = getRealName(tool)
+    if name then
+        local lbl = Instance.new("TextLabel", container)
+        lbl.Size = UDim2.new(0, 180, 0, 14)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = "[ " .. name .. " ]"
+        lbl.Font = Enum.Font.SourceSansBold
+        lbl.TextSize = 11
+        lbl.TextStrokeTransparency = 0.4
+        lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
+        
+        local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
+        lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.new(0, 255, 255)
+    end
+end
+
+end
+
+-- فحص كامل الأطراف (الرأس والجسم واليدين) لإكمال الكود المقطوع سابقاً وحمايته
+local function createESP(p)
+    if p == LocalPlayer then return end
     
+    local function setup(char)
+        local root = char:WaitForChild("HumanoidRootPart", 15)
+        local head = char:WaitForChild("Head", 15)
+        local torso = char:WaitForChild("Torso", 2) or char:WaitForChild("UpperTorso", 2)
+        local leftArm = char:WaitForChild("Left Arm", 2) or char:WaitForChild("LeftUpperArm", 2)
+        local rightArm = char:WaitForChild("Right Arm", 2) or char:WaitForChild("RightUpperArm", 2)
+        
+        if not root or not head then return end
+        
+        if BillboardCache[p] then 
+            BillboardCache[p]:Destroy() 
+        end
+        
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "LootESP"
+        bb.Size = UDim2.new(0, 200, 0, 120)
+        bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 3, 0)
+        bb.Enabled = false
+        bb.Parent = game.CoreGui
+        
+        local container = Instance.new("Frame", bb)
+        container.Name = "EspContainer"
+        container.Size = UDim2.new(1, 0, 1, 0)
+        container.BackgroundTransparency = 1
+        
+        BillboardCache[p] = bb
+        bb.Adornee = head
+    end
+    
+    if p.Character then 
+        task.spawn(setup, p.Character) 
+    end
+    p.CharacterAdded:Connect(setup)
+end
+
+-- === نظام الأيم بوت وتتبع أقرب لاعب للأيم ===
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild(AIM_TARGET_PART) and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character[AIM_TARGET_PART].Position)
+            if onScreen then
+                local mousePos = UserInputService:GetMouseLocation()
+                local dist = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                if dist < shortestDistance then
+                    closestPlayer = p
+                    shortestDistance = dist
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- لربط الأيم بوت
+UserInputService.InputBegan:Connect(function(input)
+    if input.UserInputType == AIM_KEY then 
+        Aiming = true 
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == AIM_KEY then 
+        Aiming = false 
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if AIMBOT_ENABLED and Aiming then
+        local targetPlayer = GetClosestPlayer()
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild(AIM_TARGET_PART) then
+            local targetPos = targetPlayer.Character[AIM_TARGET_PART].Position
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), AIM_SMOOTHNESS)
+        end
+    end
+end)
+
+for _, p in ipairs(Players:GetPlayers()) do 
+    createESP(p) 
+end
+
+Players.PlayerAdded:Connect(createESP)
+
+Players.PlayerRemoving:Connect(function(p)
+    if BillboardCache[p] then 
+        BillboardCache[p]:Destroy() 
+        BillboardCache[p] = nil 
+    end
+end)
+
+task.spawn(function()
+    while true do
+        for p, _ in pairs(BillboardCache) do 
+            pcall(function() updateESP(p) end) 
+        end
+        task.wait(UPDATE_INTERVAL)
+    end
+end)
+
+print("Rayiz Private White-GUI Bloxspin Master ESP & Body-Aimbot Activated! 🚀🔒")
