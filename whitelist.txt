@@ -6,21 +6,35 @@ local UserInputService = game:GetService("UserInputService")
 local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
--- === ADVANCED KEY SYSTEM ===
+-- === 🛡️ ONLINE GITHUB WHITELIST & KEY SYSTEM ===
 
-local AllowedIDs = {
-    [2908899698] = true, -- حسابك الشخصي (Rayiz_1) 🔒
-    [2345512278] = true, -- حساب صديقك (xcyfo) 👥
-}
+-- ⚠️ قم بتغيير هذه الروابط إلى روابط الـ RAW الخاصة بملفاتك على جيتهاب
+local WHITELIST_URL = "https://githubusercontent.com"
+local KEY_URL = "https://githubusercontent.com"
 
--- الكي يتغير يوميًا (مثال)
-local function GenerateKey()
-    return "MMM"
-end
-
-local CorrectKey = GenerateKey()
+local AllowedIDs = {}
+local CorrectKey = "MMM" -- المفتاح الاحتياطي في حال فشل الاتصال
 local KeyEntered = false
 local KeyExpireTime = 300 -- 5 دقائق
+
+-- جلب قائمة المصرح لهم من جيتهاب تلقائياً
+local successWL, resWL = pcall(function() return game:HttpGet(WHITELIST_URL) end)
+if successWL and resWL then
+    for id in string.gmatch(resWL, "[^\r\n]+") do
+        local numId = tonumber(id)
+        if numId then AllowedIDs[numId] = true end
+    end
+else
+    -- القائمة الاحتياطية في حال تعطل الاتصال بالإنترنت
+    AllowedIDs[2908899698] = true -- حسابك الشخصي (Rayiz_1)
+    AllowedIDs[2345512278] = true -- حساب صديقك (xcyfo)
+end
+
+-- جلب المفتاح اليومي من جيتهاب تلقائياً
+local successKey, resKey = pcall(function() return game:HttpGet(KEY_URL) end)
+if successKey and resKey then
+    CorrectKey = resKey:match("^%s*(.-)%s*\$") -- تنظيف المسافات والأسطر الزائدة
+end
 
 -- GUI الواجهة البيضاء للمفتاح
 local KeyGui = Instance.new("ScreenGui", game.CoreGui)
@@ -29,7 +43,7 @@ KeyGui.Name = "SecureKeySystem"
 local Frame = Instance.new("Frame", KeyGui)
 Frame.Size = UDim2.new(0, 320, 0, 200)
 Frame.Position = UDim2.new(0.5, -160, 0.5, -100)
-Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ خلفية بيضاء
 Frame.BorderSizePixel = 0
 Instance.new("UICorner", Frame)
 
@@ -38,7 +52,7 @@ Title.Size = UDim2.new(1,0,0.25,0)
 Title.Text = "Welcome script Rayiz"
 Title.TextScaled = true
 Title.BackgroundTransparency = 1
-Title.TextColor3 = Color3.fromRGB(0,0,0) 
+Title.TextColor3 = Color3.fromRGB(0,0,0) -- 🖤 نص أسود
 Title.Font = Enum.Font.SourceSansBold
 
 local TextBox = Instance.new("TextBox", Frame)
@@ -64,11 +78,11 @@ Button.Size = UDim2.new(0.8,0,0.2,0)
 Button.Position = UDim2.new(0.1,0,0.75,0)
 Button.Text = "Submit"
 Button.TextScaled = true
-Button.BackgroundColor3 = Color3.fromRGB(0,0,0) 
-Button.TextColor3 = Color3.fromRGB(255,255,255) 
+Button.BackgroundColor3 = Color3.fromRGB(0,0,0) -- 🖤 زر أسود
+Button.TextColor3 = Color3.fromRGB(255,255,255) -- ⚪ نص أبيض
 Instance.new("UICorner", Button)
 
--- تحقق
+-- تحقق من المفتاح والمشتركين
 Button.MouseButton1Click:Connect(function()
     if not AllowedIDs[LocalPlayer.UserId] then
         Status.Text = "❌ لست في قائيمة المشتركين"
@@ -90,7 +104,7 @@ Button.MouseButton1Click:Connect(function()
     KeyGui:Destroy()
 end)
 
--- Timeout (حماية)
+-- حماية حظر انتهاء الوقت لقائمة المفتاح
 task.spawn(function()
     local start = tick()
     while not KeyEntered do
@@ -102,7 +116,7 @@ task.spawn(function()
     end
 end)
 
--- وقف السكربت لين يتحقق
+-- إيقاف تشغيل السكربت حتى يتم إدخال المفتاح
 repeat task.wait() until KeyEntered
 
 -- === CONFIGURATION ===
@@ -114,7 +128,7 @@ local BillboardCache = {}
 local nameCache = {} 
 
 local AIM_KEY = Enum.UserInputType.MouseButton2 
-local AIM_TARGET_PART = "HumanoidRootPart" -- قفل الأيم على الجسد وآمن
+local AIM_TARGET_PART = "HumanoidRootPart" -- قفل التثبيت على الجسد وآمن
 local AIM_SMOOTHNESS = 0.15 
 local Aiming = false
 
@@ -127,14 +141,14 @@ local RARITY_COLORS = {
     ["Omega"] = Color3.fromRGB(255, 20, 51),
 }
 
--- === 🖤 قائمة التحكم السوداء (OPEN MENU) ===
+-- === 🖤 قائمة التحكم المفتوحة السوداء (OPEN MENU) ===
 local MenuGui = Instance.new("ScreenGui", game.CoreGui)
 MenuGui.Name = "RayizMenu"
 
 local MenuFrame = Instance.new("Frame", MenuGui)
 MenuFrame.Size = UDim2.new(0, 240, 0, 180)
 MenuFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
-MenuFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) 
+MenuFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- ⚫ قائمة سوداء
 MenuFrame.BorderSizePixel = 0
 Instance.new("UICorner", MenuFrame)
 
@@ -227,9 +241,7 @@ local function getRealName(t)
         end
     end
 
-    if nameCache[originalName] then 
-        return nameCache[originalName] 
-    end
+    if nameCache[originalName] then return nameCache[originalName] end
     
     local h = t:FindFirstChild("Handle")
     local fallbackName = cleaned
@@ -241,18 +253,12 @@ local function getRealName(t)
                     local match = true
                     if h then
                         for _, c in ipairs(h:GetChildren()) do
-                            if not item.Handle:FindFirstChild(c.Name) then 
-                                match = false 
-                                break 
-                            end
+                            if not item.Handle:FindFirstChild(c.Name) then match = false break end
                         end
                     else
                         match = false
                     end
-                    if match then 
-                        nameCache[originalName] = item.Name 
-                        return item.Name 
-                    end
+                    if match then nameCache[originalName] = item.Name return item.Name end
                 end
             end
         end
@@ -263,7 +269,7 @@ local function getRealName(t)
 end
 
 local function updateESP(p)
-    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وحسابك كلياً
+    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وعلامات حسابك بالكامل لحمايتك أثناء اللعب
 
     local bb = BillboardCache[p]
     if not bb then return end
@@ -288,19 +294,3 @@ local function updateESP(p)
     container:ClearAllChildren()
 
     local layout = Instance.new("UIListLayout", container)
-    layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    layout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
-    layout.Padding = UDim.new(0, 2)
-
-    -- نصوص معلومات اللاعب باللون الأبيض
-    local infoLbl = Instance.new("TextLabel", container)
-    infoLbl.Size = UDim2.new(0, 180, 0, 22)
-    infoLbl.BackgroundTransparency = 1
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    local hp = hum and math.floor(hum.Health) or 100
-    local maxHp = hum and math.floor(hum.MaxHealth) or 100
-    local lChar2 = LocalPlayer.Character
-    local distText = (lChar2 and lChar2:FindFirstChild("HumanoidRootPart")) and math.floor((lChar2.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude) or 0
-    
-    infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", p.Name, distText, hp, maxHp)
-    infoLbl.Font = Enum.Font.SourceSansBold
