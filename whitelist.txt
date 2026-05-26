@@ -22,16 +22,30 @@ local RARITY_COLORS = {
 
 local ESP_Cache = {}
 
+-- دالة متطورة لتنظيف أسماء الأسلحة من الأرقام والرموز
 local function getCleanName(tool)
     if not tool or not tool.Name then return nil end
-    local cleaned = tool.Name:lower():gsub("%d+$", ""):gsub("_%d+$", ""):gsub("[%s_]+", " "):match("^%s*(.-)%s*$")
-    if cleaned:find("fishing") or cleaned:find("rod") or cleaned:find("canne") then
-        if cleaned:find("ultimate") or cleaned:find("ult") then return "Ultimate Fishing Rod"
-        elseif cleaned:find("advanced") then return "Advanced Fishing Rod"
-        elseif cleaned:find("pro") then return "Pro Fishing Rod"
+    local originalName = tool.Name
+    
+    -- تنظيف الاسم من الأرقام والرموز تماماً
+    local cleaned = originalName:gsub("%d+", ""):gsub("_", " "):gsub("-", " "):gsub("[%s]+", " "):match("^%s*(.-)%s*$")
+    
+    -- إذا أصبح الاسم فارغاً بسبب الحذف، نرجع الاسم الأصلي لحمايته
+    if not cleaned or cleaned == "" then 
+        cleaned = originalName 
+    end
+
+    -- التحقق من أدوات الصيد كدعم إضافي
+    local lowerClean = cleaned:lower()
+    if lowerClean:find("fishing") or lowerClean:find("rod") or lowerClean:find("canne") then
+        if lowerClean:find("ultimate") or lowerClean:find("ult") then return "Ultimate Fishing Rod"
+        elseif lowerClean:find("advanced") then return "Advanced Fishing Rod"
+        elseif lowerClean:find("pro") then return "Pro Fishing Rod"
         else return "Regular Fishing Rod" end
     end
-    return tool.Name
+    
+    -- تكبير أول حرف من كل كلمة ليصبح المظهر احترافي
+    return (cleaned:gsub("(%a)([%w]*)", function(first, rest) return first:upper()..rest:lower() end))
 end
 
 local function updateESP(player)
@@ -69,7 +83,7 @@ local function updateESP(player)
         data.Box.Adornee = char
     end
 
-    -- === 2️⃣ تحديث النصوص (الاسم، المسافة، الدم) ===
+    -- === 2️⃣ تحديث النصوص (الاسم باللون الأبيض، المسافة، الدم) ===
     local container = data.Billboard and data.Billboard:FindFirstChild("EspContainer")
     if container then
         container:ClearAllChildren()
@@ -85,17 +99,16 @@ local function updateESP(player)
         infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
         infoLbl.Font = Enum.Font.SourceSansBold
         infoLbl.TextSize = 14
-        infoLbl.TextColor3 = Color3.fromRGB(0, 255, 255)
+        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ اسم اللاعب باللون الأبيض النقي
         infoLbl.TextStrokeTransparency = 0.1
         infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
 
-        if humanoid.Health < (humanoid.MaxHealth * 0.3) then
-            infoLbl.TextColor3 = Color3.fromRGB(255, 50, 50) 
-        elseif humanoid.Health < (humanoid.MaxHealth * 0.7) then
-            infoLbl.TextColor3 = Color3.fromRGB(255, 200, 50) 
+        -- تغيير اللون فقط إذا كان الدم منخفضاً جداً كتحذير
+        if humanoid.Health < (humanoid.MaxHealth * 0.25) then
+            infoLbl.TextColor3 = Color3.fromRGB(255, 50, 50) -- أحمر عند الاحتضار
         end
 
-        -- === 3️⃣ تحديث لوت وأدوات اللاعب ===
+        -- === 3️⃣ تحديث أسلحة وأدوات اللاعب (بدون أرقام) ===
         local tools = {}
         if player:FindFirstChild("Backpack") then
             for _, t in ipairs(player.Backpack:GetChildren()) do
@@ -119,7 +132,7 @@ local function updateESP(player)
                 lbl.TextStrokeColor3 = Color3.new(0,0,0)
 
                 local rarity = tool:GetAttribute("RarityName") or tool:GetAttribute("Rarity")
-                lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(255, 255, 255)
+                lbl.TextColor3 = RARITY_COLORS[rarity] or Color3.fromRGB(0, 255, 255)
             end
         end
     end
@@ -142,7 +155,6 @@ local function createESP(player)
             if ESP_Cache[player].Box then ESP_Cache[player].Box:Destroy() end
         end
 
-        -- إنشاء اللوحة فوق الرأس
         local bb = Instance.new("BillboardGui")
         bb.Name = "PlayerESP_" .. player.Name
         bb.Size = UDim2.new(0, 200, 0, 150)
@@ -158,7 +170,6 @@ local function createESP(player)
         container.Size = UDim2.new(1, 0, 1, 0)
         container.BackgroundTransparency = 1
 
-        -- المربع المحيط ثلاثي الأبعاد
         local box = Instance.new("SelectionBox")
         box.Name = "BoxESP_" .. player.Name
         box.Color3 = Color3.fromRGB(255, 0, 0) 
@@ -192,4 +203,4 @@ task.spawn(function()
     end
 end)
 
-print("Rayiz Ultra ESP System Fully Activated! 🚀")
+print("Rayiz Clean ESP Fully Loaded! 🚀")
