@@ -62,7 +62,6 @@ Status.TextColor3 = Color3.fromRGB(0, 0, 0)
 local Button = Instance.new("TextButton", Frame)
 Button.Size = UDim2.new(0.8, 0, 0.2, 0)
 Button.Position = UDim2.new(0.1, 0, 0.75, 0)
-Button.ButtonText = "Submit"
 Button.Text = "Submit"
 Button.TextScaled = true
 Button.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- 🖤 زر الإرسال باللون الأسود
@@ -263,3 +262,5 @@ local function checkAndTrackLoot(object)
         bb.Name = "LootESP_" .. object.Name
         bb.Size = UDim2.new(0, 150, 0, 40)
         bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 2, 0)
+        
