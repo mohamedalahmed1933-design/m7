@@ -21,33 +21,42 @@ local RARITY_COLORS = {
 }
 
 local ESP_Cache = {}
+local Loot_Cache = {}
 
--- دالة متطورة لتنظيف أسماء الأسلحة من الأرقام والرموز
+-- 🛠️ دالة مخصصة لفك شفرة أسلحة ولوت Bloxspin وقراءة الأسماء الحقيقية بدلاً من الأرقام
 local function getCleanName(tool)
-    if not tool or not tool.Name then return nil end
-    local originalName = tool.Name
+    if not tool then return nil end
     
-    -- تنظيف الاسم من الأرقام والرموز تماماً
-    local cleaned = originalName:gsub("%d+", ""):gsub("_", " "):gsub("-", " "):gsub("[%s]+", " "):match("^%s*(.-)%s*$")
-    
-    -- إذا أصبح الاسم فارغاً بسبب الحذف، نرجع الاسم الأصلي لحمايته
-    if not cleaned or cleaned == "" then 
-        cleaned = originalName 
+    -- 1. محاولة القراءة من الـ Attributes الشائعة في نظام اللعبة للأسلحة واللوت الأرضي
+    local attrName = tool:GetAttribute("DisplayName") or tool:GetAttribute("WeaponName") or tool:GetAttribute("ItemName") or tool:GetAttribute("Name")
+    if attrName and tostring(attrName) ~= "" and not tonumber(attrName) then
+        return tostring(attrName)
     end
 
-    -- التحقق من أدوات الصيد كدعم إضافي
-    local lowerClean = cleaned:lower()
-    if lowerClean:find("fishing") or lowerClean:find("rod") or lowerClean:find("canne") then
-        if lowerClean:find("ultimate") or lowerClean:find("ult") then return "Ultimate Fishing Rod"
-        elseif lowerClean:find("advanced") then return "Advanced Fishing Rod"
-        elseif lowerClean:find("pro") then return "Pro Fishing Rod"
-        else return "Regular Fishing Rod" end
+    -- 2. محاولة البحث عن كائن نصي خفي (StringValue) يحتوي على الاسم الحقيقي داخل السلاح الساقط
+    for _, child in ipairs(tool:GetChildren()) do
+        if child:IsA("StringValue") and child.Value ~= "" and not tonumber(child.Value) then
+            local cName = child.Name:lower()
+            if cName:find("name") or cName:find("weapon") or cName:find("display") or cName:find("tool") or cName:find("item") then
+                return child.Value
+            end
+        end
     end
+
+    -- 3. تنظيف أولي لاسم الأداة الأصلي من أي أرقام مدمجة أو زوائد برمجية
+    local originalName = tool.Name
+    local cleaned = originalName:gsub("%d+", ""):gsub("_", " "):gsub("-", " "):gsub("[%s]+", " "):match("^%s*(.-)%s*\$")
     
-    -- تكبير أول حرف من كل كلمة ليصبح المظهر احترافي
+    -- إذا كان الاسم يحتوي على أرقام فقط (كود برمي) ولم يجد اسماً حقيقياً بالداخل
+    if tonumber(originalName) and (not cleaned or cleaned == "") then
+        return "Weapon ID: " .. originalName 
+    end
+
+    if not cleaned or cleaned == "" then cleaned = originalName end
     return (cleaned:gsub("(%a)([%w]*)", function(first, rest) return first:upper()..rest:lower() end))
 end
 
+-- === 👤 1️⃣ تحديث كاشف اللاعبين (الأسماء باللون الأبيض) ===
 local function updateESP(player)
     local data = ESP_Cache[player]
     if not data then return end
@@ -78,12 +87,8 @@ local function updateESP(player)
         return
     end
 
-    -- === 1️⃣ تحديث المربع المحيط باللاعب ===
-    if data.Box then
-        data.Box.Adornee = char
-    end
+    if data.Box then data.Box.Adornee = char end
 
-    -- === 2️⃣ تحديث النصوص (الاسم باللون الأبيض، المسافة، الدم) ===
     local container = data.Billboard and data.Billboard:FindFirstChild("EspContainer")
     if container then
         container:ClearAllChildren()
@@ -99,16 +104,14 @@ local function updateESP(player)
         infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
         infoLbl.Font = Enum.Font.SourceSansBold
         infoLbl.TextSize = 14
-        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ اسم اللاعب باللون الأبيض النقي
+        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- اسم اللاعب باللون الأبيض
         infoLbl.TextStrokeTransparency = 0.1
         infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
 
-        -- تغيير اللون فقط إذا كان الدم منخفضاً جداً كتحذير
         if humanoid.Health < (humanoid.MaxHealth * 0.25) then
-            infoLbl.TextColor3 = Color3.fromRGB(255, 50, 50) -- أحمر عند الاحتضار
+            infoLbl.TextColor3 = Color3.fromRGB(255, 50, 50) 
         end
 
-        -- === 3️⃣ تحديث أسلحة وأدوات اللاعب (بدون أرقام) ===
         local tools = {}
         if player:FindFirstChild("Backpack") then
             for _, t in ipairs(player.Backpack:GetChildren()) do
@@ -143,9 +146,85 @@ local function updateESP(player)
     end
 end
 
+-- === 📦 2️⃣ نظام كشف اللوت والصناديق تلقائياً (بدون أرقام) ===
+local function checkAndTrackLoot(object)
+    if not object:IsA("Model") and not object:IsA("Part") and not object:IsA("MeshPart") and not object:IsA("Tool") then return end
+    
+    local nameLower = object.Name:lower()
+    local isChest = nameLower:find("chest") or nameLower:find("treasure") or nameLower:find("box") or nameLower:find("safe")
+    local isDroppedItem = object:IsA("Tool") or object:FindFirstChildOfClass("TouchTransmitter") or nameLower:find("item") or nameLower:find("loot") or nameLower:find("ground") or object:FindFirstChild("Handle")
+
+    if (isChest or isDroppedItem) and not Loot_Cache[object] then
+        local primaryPart = object:IsA("Model") and (object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart")) or object
+        if not primaryPart then return end
+
+        -- استخدام الدالة الذكية لفك شفرة الاسم الحقيقي للوت الأرضي
+        local cleanName = isChest and "Treasure Chest 🎁" or getCleanName(object)
+        local displayColor = isChest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 100) -- ذهبي للصناديق وأخضر للوت
+
+        local bb = Instance.new("BillboardGui")
+        bb.Name = "LootESP_" .. object.Name
+        bb.Size = UDim2.new(0, 150, 0, 40)
+        bb.AlwaysOnTop = true
+        bb.ExtentsOffset = Vector3.new(0, 2, 0)
+        
+        local successUi, _ = pcall(function() bb.Parent = CoreGui end)
+        if not successUi then bb.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+
+        local lbl = Instance.new("TextLabel", bb)
+        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Font = Enum.Font.SourceSansBold
+        lbl.TextSize = 13
+        lbl.TextColor3 = displayColor
+        lbl.TextStrokeTransparency = 0.2
+        lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
+
+        local selectionBox = Instance.new("SelectionBox")
+        selectionBox.Color3 = displayColor
+        selectionBox.LineThickness = 0.04
+        selectionBox.Adornee = object
+        selectionBox.Parent = workspace
+
+        Loot_Cache[object] = { Billboard = bb, Label = lbl, Box = selectionBox, Part = primaryPart, Name = cleanName }
+    end
+end
+
+local function updateLootESP()
+    local lChar = LocalPlayer.Character
+    local lRoot = lChar and lChar:FindFirstChild("HumanoidRootPart")
+
+    for obj, data in pairs(Loot_Cache) do
+        if not obj or not obj.Parent or not data.Part or not data.Part.Parent then
+            if data.Billboard then data.Billboard:Destroy() end
+            if data.Box then data.Box:Destroy() end
+            Loot_Cache[obj] = nil
+        else
+            if lRoot and ESP_ENABLED then
+                local dist = math.floor((lRoot.Position - data.Part.Position).Magnitude)
+                if dist <= MAX_DISTANCE then
+                    data.Billboard.Enabled = true
+                    data.Box.Visible = true
+                    data.Label.Text = string.format("%s\n[%d m]", data.Name, dist)
+                else
+                    data.Billboard.Enabled = false
+                    data.Box.Visible = false
+                end
+            else
+                data.Billboard.Enabled = false
+                data.Box.Visible = false
+            end
+        end
+    end
+end
+
+-- مسح الماب وتتبع اللوت تلقائياً
+for _, obj in ipairs(workspace:GetDescendants()) do pcall(checkAndTrackLoot, obj) end
+workspace.DescendantAdded:Connect(function(obj) pcall(checkAndTrackLoot, obj) end)
+
+-- === ⚙️ دالات تشغيل كاشف اللاعبين ===
 local function createESP(player)
     if player == LocalPlayer then return end
-
     local function setup(char)
         char:WaitForChild("HumanoidRootPart", 5)
         char:WaitForChild("Head", 5)
@@ -153,54 +232,4 @@ local function createESP(player)
         if ESP_Cache[player] then 
             if ESP_Cache[player].Billboard then ESP_Cache[player].Billboard:Destroy() end
             if ESP_Cache[player].Box then ESP_Cache[player].Box:Destroy() end
-        end
-
-        local bb = Instance.new("BillboardGui")
-        bb.Name = "PlayerESP_" .. player.Name
-        bb.Size = UDim2.new(0, 200, 0, 150)
-        bb.AlwaysOnTop = true
-        bb.ExtentsOffset = Vector3.new(0, 3.5, 0)
-        bb.Enabled = false
-        
-        local successUi, _ = pcall(function() bb.Parent = CoreGui end)
-        if not successUi then bb.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
-        local container = Instance.new("Frame", bb)
-        container.Name = "EspContainer"
-        container.Size = UDim2.new(1, 0, 1, 0)
-        container.BackgroundTransparency = 1
-
-        local box = Instance.new("SelectionBox")
-        box.Name = "BoxESP_" .. player.Name
-        box.Color3 = Color3.fromRGB(255, 0, 0) 
-        box.LineThickness = 0.05
-        box.Parent = workspace
-
-        ESP_Cache[player] = { Billboard = bb, Box = box }
-    end
-
-    if player.Character then task.spawn(setup, player.Character) end
-    player.CharacterAdded:Connect(setup)
-end
-
-for _, p in ipairs(Players:GetPlayers()) do createESP(p) end
-Players.PlayerAdded:Connect(createESP)
-
-Players.PlayerRemoving:Connect(function(p)
-    if ESP_Cache[p] then
-        if ESP_Cache[p].Billboard then ESP_Cache[p].Billboard:Destroy() end
-        if ESP_Cache[p].Box then ESP_Cache[p].Box:Destroy() end
-        ESP_Cache[p] = nil
-    end
-end)
-
-task.spawn(function()
-    while true do
-        for p, _ in pairs(ESP_Cache) do
-            pcall(function() updateESP(p) end)
-        end
-        task.wait(UPDATE_INTERVAL)
-    end
-end)
-
-print("Rayiz Clean ESP Fully Loaded! 🚀")
+    
