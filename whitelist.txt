@@ -1,62 +1,160 @@
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterPack = game:GetService("StarterPack")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 
+-- === 🛡️ نظام المفاتيح وقائمة المشتركين المحمية (ADVANCED KEY SYSTEM) ===
+
+local AllowedIDs = {
+    [2908899698] = true, -- 🔒 حسابك الشخصي (Rayiz_1)
+    [2345512278] = true, -- 👥 حساب صديقك (xcyfo)
+}
+
+local function GenerateKey()
+    return "MMM" -- ✨ المفتاح السري المعتمد
+end
+
+local CorrectKey = GenerateKey()
+local KeyEntered = false
+local KeyExpireTime = 300 
+
+-- إنشاء واجهة التحقق (GUI)
+local KeyGui = Instance.new("ScreenGui", CoreGui)
+KeyGui.Name = "SecureKeySystem"
+
+local Frame = Instance.new("Frame", KeyGui)
+Frame.Size = UDim2.new(0, 320, 0, 200)
+Frame.Position = UDim2.new(0.5, -160, 0.5, -100)
+Frame.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ خلفية القائمة باللون الأبيض النقي
+Frame.BorderSizePixel = 0
+Instance.new("UICorner", Frame)
+
+local Title = Instance.new("TextLabel", Frame)
+Title.Size = UDim2.new(1, 0, 0.25, 0)
+Title.Text = "Welcome Script Rayiz"
+Title.TextScaled = true
+Title.BackgroundTransparency = 1
+Title.TextColor3 = Color3.fromRGB(0, 0, 0) -- 🖤 النص باللون الأسود ليظهر بوضوح على الخلفية البيضاء
+Title.Font = Enum.Font.SourceSansBold
+
+local TextBox = Instance.new("TextBox", Frame)
+TextBox.Size = UDim2.new(0.8, 0, 0.25, 0)
+TextBox.Position = UDim2.new(0.1, 0, 0.3, 0)
+TextBox.PlaceholderText = "Enter Key..."
+TextBox.Text = ""
+TextBox.TextScaled = true
+TextBox.BackgroundColor3 = Color3.fromRGB(235, 235, 235) -- صندوق كتابة رمادي فاتح مريح للعين
+TextBox.TextColor3 = Color3.fromRGB(0, 0, 0)
+Instance.new("UICorner", TextBox)
+
+local Status = Instance.new("TextLabel", Frame)
+Status.Size = UDim2.new(1, 0, 0.15, 0)
+Status.Position = UDim2.new(0, 0, 0.55, 0)
+Status.BackgroundTransparency = 1
+Status.Text = ""
+Status.TextScaled = true
+Status.TextColor3 = Color3.fromRGB(0, 0, 0)
+
+local Button = Instance.new("TextButton", Frame)
+Button.Size = UDim2.new(0.8, 0, 0.2, 0)
+Button.Position = UDim2.new(0.1, 0, 0.75, 0)
+Button.ButtonText = "Submit"
+Button.Text = "Submit"
+Button.TextScaled = true
+Button.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- 🖤 زر الإرسال باللون الأسود
+Button.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ نص الزر باللون الأبيض لتباين ممتاز
+Instance.new("UICorner", Button)
+
+-- تفعيل التحقق عند الضغط
+Button.MouseButton1Click:Connect(function()
+    if not AllowedIDs[LocalPlayer.UserId] then
+        Status.Text = "❌ لست في قائمة المشتركين"
+        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+
+    if TextBox.Text ~= CorrectKey then
+        Status.Text = "❌ الرمز ليس صحيح"
+        Status.TextColor3 = Color3.fromRGB(255, 50, 50)
+        return
+    end
+
+    KeyEntered = true
+    Status.Text = "✅ ناجح"
+    Status.TextColor3 = Color3.fromRGB(0, 180, 0)
+    
+    task.wait(1)
+    KeyGui:Destroy()
+end)
+
+-- حماية الـ Timeout للوقت
+task.spawn(function()
+    local start = tick()
+    while not KeyEntered do
+        if tick() - start > KeyExpireTime then
+            LocalPlayer:Kick("Key expired ❌")
+            break
+        end
+        task.wait(1)
+    end
+end)
+
+-- إيقاف الكاشف حتى يتم إدخال الكود بنجاح
+repeat task.wait() until KeyEntered
+
 -- ==========================================
--- === 🌟 إعدادات الكاشف المتطور (ESP) ===
+-- === 🌟 إعدادات كاشف BLOXSPIN المتطور ===
 -- ==========================================
 local ESP_ENABLED = true          
 local MAX_DISTANCE = 3000         
 local UPDATE_INTERVAL = 0.02 
 
 local RARITY_COLORS = {
-    ["Common"] = Color3.fromRGB(255, 255, 255),    
-    ["Uncommon"] = Color3.fromRGB(99, 255, 52),   
-    ["Rare"] = Color3.fromRGB(51, 170, 255),       
-    ["Epic"] = Color3.fromRGB(237, 44, 255),       
-    ["Legendary"] = Color3.fromRGB(255, 150, 0),   
-    ["Omega"] = Color3.fromRGB(255, 20, 51),       
+    ["Common"] = Color3.fromRGB(255, 255, 255),
+    ["Uncommon"] = Color3.fromRGB(99, 255, 52),
+    ["Rare"] = Color3.fromRGB(51, 170, 255),
+    ["Epic"] = Color3.fromRGB(237, 44, 255),
+    ["Legendary"] = Color3.fromRGB(255, 150, 0),
+    ["Omega"] = Color3.fromRGB(255, 20, 51),
 }
 
 local ESP_Cache = {}
 local Loot_Cache = {}
 
--- 🛠️ دالة مخصصة لفك شفرة أسلحة ولوت Bloxspin وقراءة الأسماء الحقيقية بدلاً من الأرقام
+-- دالة فك شفرة أسلحة ولوت Bloxspin الأرضي واليدوي وإخفاء الأرقام
 local function getCleanName(tool)
     if not tool then return nil end
     
-    -- 1. محاولة القراءة من الـ Attributes الشائعة في نظام اللعبة للأسلحة واللوت الأرضي
     local attrName = tool:GetAttribute("DisplayName") or tool:GetAttribute("WeaponName") or tool:GetAttribute("ItemName") or tool:GetAttribute("Name")
     if attrName and tostring(attrName) ~= "" and not tonumber(attrName) then
         return tostring(attrName)
     end
 
-    -- 2. محاولة البحث عن كائن نصي خفي (StringValue) يحتوي على الاسم الحقيقي داخل السلاح الساقط
     for _, child in ipairs(tool:GetChildren()) do
         if child:IsA("StringValue") and child.Value ~= "" and not tonumber(child.Value) then
             local cName = child.Name:lower()
-            if cName:find("name") or cName:find("weapon") or cName:find("display") or cName:find("tool") or cName:find("item") then
+            if cName:find("name") or cName:find("weapon") or cName:find("display") or cName:find("item") then
                 return child.Value
             end
         end
     end
 
-    -- 3. تنظيف أولي لاسم الأداة الأصلي من أي أرقام مدمجة أو زوائد برمجية
     local originalName = tool.Name
     local cleaned = originalName:gsub("%d+", ""):gsub("_", " "):gsub("-", " "):gsub("[%s]+", " "):match("^%s*(.-)%s*\$")
     
-    -- إذا كان الاسم يحتوي على أرقام فقط (كود برمي) ولم يجد اسماً حقيقياً بالداخل
     if tonumber(originalName) and (not cleaned or cleaned == "") then
-        return "Weapon ID: " .. originalName 
+        return "Weapon [" .. originalName .. "]"
     end
 
     if not cleaned or cleaned == "" then cleaned = originalName end
     return (cleaned:gsub("(%a)([%w]*)", function(first, rest) return first:upper()..rest:lower() end))
 end
 
--- === 👤 1️⃣ تحديث كاشف اللاعبين (الأسماء باللون الأبيض) ===
+-- === 👤 1️⃣ دالة تحديث كاشف اللاعبين والأسلحة ===
 local function updateESP(player)
     local data = ESP_Cache[player]
     if not data then return end
@@ -104,7 +202,7 @@ local function updateESP(player)
         infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", player.Name, dist, math.floor(humanoid.Health), math.floor(humanoid.MaxHealth))
         infoLbl.Font = Enum.Font.SourceSansBold
         infoLbl.TextSize = 14
-        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- اسم اللاعب باللون الأبيض
+        infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) 
         infoLbl.TextStrokeTransparency = 0.1
         infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
 
@@ -146,90 +244,22 @@ local function updateESP(player)
     end
 end
 
--- === 📦 2️⃣ نظام كشف اللوت والصناديق تلقائياً (بدون أرقام) ===
+-- === 📦 2️⃣ كاشف اللوت الأرضي والصناديق تلقائياً ===
 local function checkAndTrackLoot(object)
     if not object:IsA("Model") and not object:IsA("Part") and not object:IsA("MeshPart") and not object:IsA("Tool") then return end
     
     local nameLower = object.Name:lower()
     local isChest = nameLower:find("chest") or nameLower:find("treasure") or nameLower:find("box") or nameLower:find("safe")
-    local isDroppedItem = object:IsA("Tool") or object:FindFirstChildOfClass("TouchTransmitter") or nameLower:find("item") or nameLower:find("loot") or nameLower:find("ground") or object:FindFirstChild("Handle")
+    local isDroppedItem = object:IsA("Tool") or object:FindFirstChildOfClass("TouchTransmitter") or nameLower:find("item") or nameLower:find("loot") or object:FindFirstChild("Handle")
 
     if (isChest or isDroppedItem) and not Loot_Cache[object] then
         local primaryPart = object:IsA("Model") and (object.PrimaryPart or object:FindFirstChildWhichIsA("BasePart")) or object
         if not primaryPart then return end
 
-        -- استخدام الدالة الذكية لفك شفرة الاسم الحقيقي للوت الأرضي
         local cleanName = isChest and "Treasure Chest 🎁" or getCleanName(object)
-        local displayColor = isChest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 100) -- ذهبي للصناديق وأخضر للوت
+        local displayColor = isChest and Color3.fromRGB(255, 215, 0) or Color3.fromRGB(0, 255, 100) 
 
         local bb = Instance.new("BillboardGui")
         bb.Name = "LootESP_" .. object.Name
         bb.Size = UDim2.new(0, 150, 0, 40)
         bb.AlwaysOnTop = true
-        bb.ExtentsOffset = Vector3.new(0, 2, 0)
-        
-        local successUi, _ = pcall(function() bb.Parent = CoreGui end)
-        if not successUi then bb.Parent = LocalPlayer:WaitForChild("PlayerGui") end
-
-        local lbl = Instance.new("TextLabel", bb)
-        lbl.Size = UDim2.new(1, 0, 1, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Font = Enum.Font.SourceSansBold
-        lbl.TextSize = 13
-        lbl.TextColor3 = displayColor
-        lbl.TextStrokeTransparency = 0.2
-        lbl.TextStrokeColor3 = Color3.new(0, 0, 0)
-
-        local selectionBox = Instance.new("SelectionBox")
-        selectionBox.Color3 = displayColor
-        selectionBox.LineThickness = 0.04
-        selectionBox.Adornee = object
-        selectionBox.Parent = workspace
-
-        Loot_Cache[object] = { Billboard = bb, Label = lbl, Box = selectionBox, Part = primaryPart, Name = cleanName }
-    end
-end
-
-local function updateLootESP()
-    local lChar = LocalPlayer.Character
-    local lRoot = lChar and lChar:FindFirstChild("HumanoidRootPart")
-
-    for obj, data in pairs(Loot_Cache) do
-        if not obj or not obj.Parent or not data.Part or not data.Part.Parent then
-            if data.Billboard then data.Billboard:Destroy() end
-            if data.Box then data.Box:Destroy() end
-            Loot_Cache[obj] = nil
-        else
-            if lRoot and ESP_ENABLED then
-                local dist = math.floor((lRoot.Position - data.Part.Position).Magnitude)
-                if dist <= MAX_DISTANCE then
-                    data.Billboard.Enabled = true
-                    data.Box.Visible = true
-                    data.Label.Text = string.format("%s\n[%d m]", data.Name, dist)
-                else
-                    data.Billboard.Enabled = false
-                    data.Box.Visible = false
-                end
-            else
-                data.Billboard.Enabled = false
-                data.Box.Visible = false
-            end
-        end
-    end
-end
-
--- مسح الماب وتتبع اللوت تلقائياً
-for _, obj in ipairs(workspace:GetDescendants()) do pcall(checkAndTrackLoot, obj) end
-workspace.DescendantAdded:Connect(function(obj) pcall(checkAndTrackLoot, obj) end)
-
--- === ⚙️ دالات تشغيل كاشف اللاعبين ===
-local function createESP(player)
-    if player == LocalPlayer then return end
-    local function setup(char)
-        char:WaitForChild("HumanoidRootPart", 5)
-        char:WaitForChild("Head", 5)
-
-        if ESP_Cache[player] then 
-            if ESP_Cache[player].Billboard then ESP_Cache[player].Billboard:Destroy() end
-            if ESP_Cache[player].Box then ESP_Cache[player].Box:Destroy() end
-    
