@@ -254,7 +254,8 @@ local function getRealName(t)
 end
 
 local function updateESP(p)
-    if p == LocalPlayer then return end -- 👁️‍عون: إخفاء اسمك وعلامات حسابك بالكامل لحمايتك أثناء اللعب والتصوير
+    -- 🔒 حماية إضافية: نتحقق هنا أيضاً لمنع قراءة بيانات حسابك الخاص وتصفيرها
+    if p == LocalPlayer or p.Name == LocalPlayer.Name then return end 
 
     local bb = BillboardCache[p]
     if not bb then return end
@@ -283,7 +284,6 @@ local function updateESP(p)
     layout.VerticalAlignment = Enum.VerticalAlignment.Bottom 
     layout.Padding = UDim.new(0, 2)
 
-    -- نصوص معلومات اللاعب باللون الأبيض
     local infoLbl = Instance.new("TextLabel", container)
     infoLbl.Size = UDim2.new(0, 180, 0, 22)
     infoLbl.BackgroundTransparency = 1
@@ -292,10 +292,10 @@ local function updateESP(p)
     local maxHp = hum and math.floor(hum.MaxHealth) or 100
     local lChar2 = LocalPlayer.Character
     local distText = (lChar2 and lChar2:FindFirstChild("HumanoidRootPart")) and math.floor((lChar2.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude) or 0
-  infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", p.Name, distText, hp, maxHp)
+infoLbl.Text = string.format("%s\n[%d m]  HP: %d/%d", p.Name, distText, hp, maxHp)
 infoLbl.Font = Enum.Font.SourceSansBold
 infoLbl.TextSize = 13
-infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255) -- ⚪ أبيض ناصع لأسمائهم
+infoLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
 infoLbl.TextStrokeTransparency = 0.2
 infoLbl.TextStrokeColor3 = Color3.new(0, 0, 0)
 
@@ -338,9 +338,12 @@ end
 
 end
 
--- فحص كامل الأطراف (الرأس والجسم واليدين) لإكمال الكود المقطوع سابقاً وحمايته
+-- فحص كامل الأطراف (الرأس والجسم واليدين)
 local function createESP(p)
-    if p == LocalPlayer then return end
+    -- 🔒 التعديل الجذري هنا: إذا كان اللاعب القادم هو أنت، يتم الخروج فوراً وبدون إنشاء لوحة كاشف فوق رأسك
+    if p == LocalPlayer or p.Name == LocalPlayer.Name then 
+        return 
+    end
     
     local function setup(char)
         local root = char:WaitForChild("HumanoidRootPart", 15)
@@ -349,7 +352,9 @@ local function createESP(p)
         local leftArm = char:WaitForChild("Left Arm", 2) or char:WaitForChild("LeftUpperArm", 2)
         local rightArm = char:WaitForChild("Right Arm", 2) or char:WaitForChild("RightUpperArm", 2)
         
-        if not root or not head then return end
+        if not root or not head then 
+            return 
+        end
         
         if BillboardCache[p] then 
             BillboardCache[p]:Destroy() 
@@ -445,3 +450,5 @@ task.spawn(function()
 end)
 
 print("Rayiz Private White-GUI Bloxspin Master ESP & Body-Aimbot Activated! 🚀🔒")
+    
+
